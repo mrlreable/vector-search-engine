@@ -97,7 +97,12 @@ type MetMuseumResponse struct {
 	MetMuseumResponseObjects []MetMuseumResponseObject
 }
 
-func GetMetMuseumObjects(objectId int, c *http.Client) (obj *MetMuseumResponse) {
+type ObjectIdResponse struct {
+	Total     int   `json:"total"`
+	ObjectIds []int `json:"objectIDs"`
+}
+
+func GetMetMuseumObjects(objectId int, c *http.Client) (obj *MetMuseumResponse, err error) {
 
 	requestUrl := fmt.Sprintf("https://collectionapi.metmuseum.org/public/collection/v1/objects/%d", objectId)
 
@@ -105,14 +110,14 @@ func GetMetMuseumObjects(objectId int, c *http.Client) (obj *MetMuseumResponse) 
 
 	if err != nil {
 		log.Println("Error creating request:", err)
-		return nil
+		return nil, err
 	}
 
 	resp, err := c.Do(req)
 
 	if err != nil {
 		log.Println("Error making HTTP request:", err)
-		return nil
+		return nil, err
 	}
 
 	defer resp.Body.Close()
@@ -121,8 +126,36 @@ func GetMetMuseumObjects(objectId int, c *http.Client) (obj *MetMuseumResponse) 
 
 	if err != nil {
 		log.Println("Error parsing response body:", err)
-		return nil
+		return nil, err
 	}
 
-	return obj
+	return obj, nil
+}
+
+func GetObjectIds(medium string, c *http.Client) (*ObjectIdResponse, error) {
+	requestUrl := fmt.Sprintf("https://collectionapi.metmuseum.org/public/collection/v1/search?hasImages=true&medium=%s", medium)
+
+	req, err := http.NewRequest("GET", requestUrl, nil)
+	if err != nil {
+		log.Println("Error creating request:", err)
+		return nil, err
+	}
+
+	resp, err := c.Do(req)
+	if err != nil {
+		log.Println("Error making HTTP request:", err)
+		return nil, err
+	}
+
+	defer resp.Body.Close()
+
+	var obj *ObjectIdResponse
+	err = json.NewDecoder(resp.Body).Decode(obj)
+
+	if err != nil {
+		log.Println("Error parsing response body:", err)
+		return nil, err
+	}
+
+	return obj, nil
 }
